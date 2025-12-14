@@ -1,7 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "Minimal Portfolio",
+  title: "Gaurab Prasai",
   description: "A minimal portfolio designed with React + Tailwind",
 };
 
