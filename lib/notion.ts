@@ -1,5 +1,8 @@
-import type { Client as NotionClientType } from '@notionhq/client';
-import type { NotionToMarkdown as NotionToMarkdownType } from 'notion-to-md';
+import { Client } from '@notionhq/client';
+
+const notion = new Client({
+  auth: process.env.NOTION_API_KEY,
+});
 
 export interface BlogPost {
   id: string;
@@ -13,43 +16,10 @@ export interface BlogPost {
   published: boolean;
 }
 
-let notionClient: NotionClientType | null = null;
-let n2mClient: NotionToMarkdownType | null = null;
-
-async function getNotionClient(): Promise<NotionClientType> {
-  if (notionClient) return notionClient;
-
-  const { Client } = await import('@notionhq/client');
-  const apiKey = process.env.NOTION_API_KEY;
-
-  if (!apiKey) {
-    throw new Error('NOTION_API_KEY is not defined');
-  }
-
-  notionClient = new Client({ auth: apiKey });
-  return notionClient;
-}
-
-async function getN2m(): Promise<NotionToMarkdownType> {
-  if (n2mClient) return n2mClient;
-
-  const { NotionToMarkdown } = await import('notion-to-md');
-  const client = await getNotionClient();
-  n2mClient = new NotionToMarkdown({ notionClient: client });
-  return n2mClient;
-}
-
 export async function getBlogPosts(): Promise<BlogPost[]> {
   try {
-    const notion = await getNotionClient();
-    const databaseId = process.env.NOTION_DATABASE_ID;
-
-    if (!databaseId) {
-      throw new Error('NOTION_DATABASE_ID is not defined');
-    }
-
     const response = await notion.databases.query({
-      database_id: databaseId,
+      database_id: process.env.NOTION_DATABASE_ID!,
       filter: {
         property: 'Published',
         checkbox: {
@@ -66,17 +36,15 @@ export async function getBlogPosts(): Promise<BlogPost[]> {
 
     return response.results.map((page: any) => {
       const properties = page.properties;
-
+      
       return {
         id: page.id,
         title: properties.Title?.title?.[0]?.plain_text || 'Untitled',
         slug: properties.Slug?.rich_text?.[0]?.plain_text || page.id,
         date: properties.Date?.date?.start || new Date().toISOString(),
         preview: properties.Preview?.rich_text?.[0]?.plain_text || '',
-        coverImage:
-          page.cover?.external?.url || page.cover?.file?.url || undefined,
-        tags:
-          properties.Tags?.multi_select?.map((tag: any) => tag.name) || [],
+        coverImage: page.cover?.external?.url || page.cover?.file?.url || undefined,
+        tags: properties.Tags?.multi_select?.map((tag: any) => tag.name) || [],
         published: properties.Published?.checkbox || false,
       };
     });
@@ -88,15 +56,8 @@ export async function getBlogPosts(): Promise<BlogPost[]> {
 
 export async function getBlogPost(slug: string): Promise<BlogPost | null> {
   try {
-    const notion = await getNotionClient();
-    const databaseId = process.env.NOTION_DATABASE_ID;
-
-    if (!databaseId) {
-      throw new Error('NOTION_DATABASE_ID is not defined');
-    }
-
     const response = await notion.databases.query({
-      database_id: databaseId,
+      database_id: process.env.NOTION_DATABASE_ID!,
       filter: {
         and: [
           {
@@ -122,10 +83,38 @@ export async function getBlogPost(slug: string): Promise<BlogPost | null> {
     const page: any = response.results[0];
     const properties = page.properties;
 
-    // Get the content
-    const n2m = await getN2m();
-    const mdblocks = await n2m.pageToMarkdown(page.id);
-    const content = n2m.toMarkdownString(mdblocks);
+    // Get page content as blocks
+    const blocks = await notion.blocks.children.list({
+      block_id: page.id,
+    });
+
+    // Convert blocks to simple markdown
+    const content = blocks.results
+      .map((block: any) => {
+        if (block.type === 'paragraph') {
+          return block.paragraph.rich_text.map((t: any) => t.plain_text).join('');
+        }
+        if (block.type === 'heading_1') {
+          return '# ' + block.heading_1.rich_text.map((t: any) => t.plain_text).join('');
+        }
+        if (block.type === 'heading_2') {
+          return '## ' + block.heading_2.rich_text.map((t: any) => t.plain_text).join('');
+        }
+        if (block.type === 'heading_3') {
+          return '### ' + block.heading_3.rich_text.map((t: any) => t.plain_text).join('');
+        }
+        if (block.type === 'bulleted_list_item') {
+          return '- ' + block.bulleted_list_item.rich_text.map((t: any) => t.plain_text).join('');
+        }
+        if (block.type === 'numbered_list_item') {
+          return '1. ' + block.numbered_list_item.rich_text.map((t: any) => t.plain_text).join('');
+        }
+        if (block.type === 'code') {
+          return '```\n' + block.code.rich_text.map((t: any) => t.plain_text).join('') + '\n```';
+        }
+        return '';
+      })
+      .join('\n\n');
 
     return {
       id: page.id,
@@ -133,11 +122,9 @@ export async function getBlogPost(slug: string): Promise<BlogPost | null> {
       slug: properties.Slug?.rich_text?.[0]?.plain_text || page.id,
       date: properties.Date?.date?.start || new Date().toISOString(),
       preview: properties.Preview?.rich_text?.[0]?.plain_text || '',
-      content: content.parent,
-      coverImage:
-        page.cover?.external?.url || page.cover?.file?.url || undefined,
-      tags:
-        properties.Tags?.multi_select?.map((tag: any) => tag.name) || [],
+      content: content,
+      coverImage: page.cover?.external?.url || page.cover?.file?.url || undefined,
+      tags: properties.Tags?.multi_select?.map((tag: any) => tag.name) || [],
       published: properties.Published?.checkbox || false,
     };
   } catch (error) {
@@ -148,15 +135,8 @@ export async function getBlogPost(slug: string): Promise<BlogPost | null> {
 
 export async function getAllSlugs(): Promise<string[]> {
   try {
-    const notion = await getNotionClient();
-    const databaseId = process.env.NOTION_DATABASE_ID;
-
-    if (!databaseId) {
-      throw new Error('NOTION_DATABASE_ID is not defined');
-    }
-
     const response = await notion.databases.query({
-      database_id: databaseId,
+      database_id: process.env.NOTION_DATABASE_ID!,
       filter: {
         property: 'Published',
         checkbox: {
