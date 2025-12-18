@@ -4,21 +4,11 @@ import React, { useState, useEffect, useRef } from "react";
 import { Moon, Sun, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 
-interface BlogPost {
-  id: string;
-  title: string;
-  slug: string;
-  date: string;
-  preview: string;
-  coverImage?: string;
-  tags?: string[];
-}
-
 export default function Portfolio() {
   const [isDark, setIsDark] = useState(false);
   const [page, setPage] = useState("home");
-  const [posts, setPosts] = useState<BlogPost[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [posts, setPosts] = useState<any[]>([]);
+  const [loadingPosts, setLoadingPosts] = useState(false);
 
   const cursorRef = useRef<HTMLDivElement | null>(null);
   const cursorDotRef = useRef<HTMLDivElement | null>(null);
@@ -27,39 +17,21 @@ export default function Portfolio() {
   const rafRef = useRef<number | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Fetch blog posts when blog page is opened
   useEffect(() => {
     if (page === "blog" && posts.length === 0) {
-      setLoading(true);
+      setLoadingPosts(true);
       fetch("/api/blog")
         .then((res) => res.json())
         .then((data) => {
           setPosts(data);
-          setLoading(false);
+          setLoadingPosts(false);
         })
         .catch((err) => {
           console.error("Error fetching posts:", err);
-          setLoading(false);
+          setLoadingPosts(false);
         });
     }
-  }, [page, posts.length]);
-
-  // Check URL params on mount for direct navigation
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const pageParam = params.get("page");
-    if (pageParam) {
-      setPage(pageParam);
-    }
-  }, []);
-
-  // Update URL when page changes
-  const changePage = (newPage: string) => {
-    setPage(newPage);
-    const url = new URL(window.location.href);
-    url.searchParams.set("page", newPage);
-    window.history.pushState({}, "", url);
-  };
+  }, [page]);
 
   useEffect(() => {
     const updateCursor = () => {
@@ -85,10 +57,13 @@ export default function Portfolio() {
       }
 
       const target = e.target as HTMLElement;
+
+      // Check if target or closest parent is a button or link
       const button = target.closest("button");
       const link = target.closest("a");
       const isClickable = !!(button || link);
 
+      // Debounce hover state changes to prevent flickering
       if (isClickable !== hoverRef.current) {
         if (debounceRef.current) {
           clearTimeout(debounceRef.current);
@@ -151,23 +126,48 @@ export default function Portfolio() {
     { title: "Project Delta", year: "2022", desc: "Experimental interface" },
   ];
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-    });
-  };
-
   return (
     <div
       className={`min-h-screen ${theme.bg} ${theme.text} transition-colors duration-300 font-mono`}
     >
+      {/* Custom cursor - large circle with inverted theme inside */}
+      {/* <div
+        ref={cursorRef}
+        className="fixed rounded-full pointer-events-none"
+        style={{
+          width: "80px",
+          height: "80px",
+          backgroundColor: isDark
+            ? "rgba(255, 255, 255, 0.1)"
+            : "rgba(0, 0, 0, 0.1)",
+          border: `2px solid ${isDark ? "#fff" : "#000"}`,
+          backdropFilter: "invert(1)",
+          WebkitBackdropFilter: "invert(1)",
+          zIndex: 9999,
+          opacity: 1,
+          transition: "transform 0.2s ease-out",
+          willChange: "transform",
+          transformOrigin: "center",
+        }}
+      /> */}
+
+      {/* Custom cursor - center dot */}
+      {/* <div
+        ref={cursorDotRef}
+        className="fixed w-1.5 h-1.5 rounded-full pointer-events-none"
+        style={{
+          backgroundColor: isDark ? "#fff" : "#000",
+          zIndex: 9999,
+          opacity: 1,
+          willChange: "transform",
+        }}
+      /> */}
+
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 p-8" style={{ zIndex: 40 }}>
         <div className="max-w-6xl mx-auto flex justify-between items-start">
           <button
-            onClick={() => changePage("home")}
+            onClick={() => setPage("home")}
             className={`text-2xl tracking-tighter transition-all px-2 py-1 border ${theme.border}`}
           >
             GP
@@ -175,19 +175,19 @@ export default function Portfolio() {
 
           <nav className="flex gap-6 items-center">
             <button
-              onClick={() => changePage("work")}
+              onClick={() => setPage("work")}
               className={`transition-all px-3 py-1 border ${theme.border}`}
             >
               Work
             </button>
             <button
-              onClick={() => changePage("blog")}
+              onClick={() => setPage("blog")}
               className={`transition-all px-3 py-1 border ${theme.border}`}
             >
               Blog
             </button>
             <button
-              onClick={() => changePage("contact")}
+              onClick={() => setPage("contact")}
               className={`transition-all px-3 py-1 border ${theme.border}`}
             >
               Contact
@@ -286,53 +286,68 @@ export default function Portfolio() {
         </main>
       )}
 
-      {/* Blog Page - Now with Notion Integration */}
+      {/* Blog Page */}
       {page === "blog" && (
         <main className="pt-40 px-8 pb-20">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-5xl mb-16 tracking-tight">Writing</h2>
-            
-            {loading ? (
-              <div className={`text-center ${theme.accent} py-12`}>
-                <div className="animate-pulse">Loading posts...</div>
+            {loadingPosts ? (
+              <div className="text-center py-12">
+                <div className={`text-lg ${theme.accent}`}>
+                  Loading posts...
+                </div>
               </div>
             ) : posts.length === 0 ? (
-              <div className={`text-center ${theme.accent} py-12`}>
-                <p>No blog posts found. Check your Notion configuration.</p>
+              <div className="text-center py-12">
+                <div className={`text-lg ${theme.accent}`}>
+                  No posts yet. Check back soon!
+                </div>
               </div>
             ) : (
               <div className="space-y-16">
-                {posts.map((post) => (
-                  <Link
-                    key={post.id}
-                    href={`/blog/${post.slug}`}
-                    className={`block group border-l-2 ${theme.border} pl-8 transition-all py-4 -ml-8 hover:pl-10`}
-                  >
-                    <div className={`text-sm ${theme.accent} mb-2`}>
-                      {formatDate(post.date)}
-                    </div>
-                    <h3 className="text-3xl mb-4 tracking-tight">{post.title}</h3>
-                    {post.preview && (
-                      <p className={`${theme.accent} text-lg`}>{post.preview}</p>
-                    )}
-                    {post.tags && post.tags.length > 0 && (
-                      <div className="flex gap-2 mt-4 flex-wrap">
-                        {post.tags.map((tag) => (
-                          <span
-                            key={tag}
-                            className={`px-2 py-1 text-xs border ${theme.border}`}
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    <div className="mt-6 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:translate-x-2">
-                      <span className="text-xs tracking-wider">Read</span>
-                      <ArrowUpRight size={14} />
-                    </div>
-                  </Link>
-                ))}
+                {posts.map((post) => {
+                  const formattedDate = new Date(post.date).toLocaleDateString(
+                    "en-US",
+                    {
+                      year: "numeric",
+                      month: "short",
+                    }
+                  );
+
+                  return (
+                    <Link href={`/blog/${post.slug}`} key={post.id}>
+                      <article
+                        className={`group border-l-2 ${theme.border} pl-8 transition-all cursor-pointer py-4 -ml-8 hover:pl-10`}
+                      >
+                        <div className={`text-sm ${theme.accent} mb-2`}>
+                          {formattedDate}
+                        </div>
+                        <h3 className="text-3xl mb-4 tracking-tight">
+                          {post.title}
+                        </h3>
+                        <p className={`${theme.accent} text-lg`}>
+                          {post.preview}
+                        </p>
+                        {post.tags && post.tags.length > 0 && (
+                          <div className="flex gap-2 mt-4 flex-wrap">
+                            {post.tags.map((tag: string) => (
+                              <span
+                                key={tag}
+                                className={`px-2 py-1 text-xs border ${theme.border}`}
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <div className="mt-6 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:translate-x-2">
+                          <span className="text-xs tracking-wider">Read</span>
+                          <ArrowUpRight size={14} />
+                        </div>
+                      </article>
+                    </Link>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -352,9 +367,8 @@ export default function Portfolio() {
                 </p>
               </div>
               <div className="space-y-6">
-                <a
-                  href="mailto:gaurabprasai@gmail.com"
-                  className={`group border ${theme.border} p-6 transition-all cursor-pointer block`}
+                <div
+                  className={`group border ${theme.border} p-6 transition-all cursor-pointer`}
                 >
                   <div className="flex justify-between items-center">
                     <div>
@@ -367,12 +381,9 @@ export default function Portfolio() {
                       <ArrowUpRight size={16} />
                     </div>
                   </div>
-                </a>
-                <a
-                  href="https://twitter.com/gaurabprasai"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`group border ${theme.border} p-6 transition-all cursor-pointer block`}
+                </div>
+                <div
+                  className={`group border ${theme.border} p-6 transition-all cursor-pointer`}
                 >
                   <div className="flex justify-between items-center">
                     <div>
@@ -385,7 +396,7 @@ export default function Portfolio() {
                       <ArrowUpRight size={16} />
                     </div>
                   </div>
-                </a>
+                </div>
                 <div
                   className={`group border ${theme.border} p-6 transition-all cursor-pointer`}
                 >
@@ -414,6 +425,12 @@ export default function Portfolio() {
           <div className={theme.accent}>Gaurab Prasai</div>
         </div>
       </footer>
+
+      {/* <style>{`
+        * {
+          cursor: none !important;
+        }
+      `}</style> */}
     </div>
   );
 }
