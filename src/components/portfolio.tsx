@@ -6,7 +6,7 @@ import type { NotionPost } from "../services/notionServices";
 export default function Portfolio() {
   const [isDark, setIsDark] = useState(false);
   const [page, setPage] = useState("home");
-  const [isHovering, setIsHovering] = useState(false);
+  const [, setIsHovering ] = useState(false);
   const [posts, setPosts] = useState<NotionPost[]>([]);
   const [loading, setLoading] = useState(true);
 
