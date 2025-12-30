@@ -1,14 +1,154 @@
 import { useState, useEffect } from "react";
 import { Moon, Sun, ArrowUpRight } from "lucide-react";
-import { fetchBlogPosts } from "../services/notionServices";
-import type { NotionPost } from "../services/notionServices";
+import { fetchBlogPosts, fetchBlogContent } from "../services/notionServices";
+import type { NotionPost, NotionBlock } from "../services/notionServices";
+
+// NotionContent Component
+function NotionContent({
+  blocks,
+  isDark,
+}: {
+  blocks: NotionBlock[];
+  isDark: boolean;
+}) {
+  const renderBlock = (block: NotionBlock) => {
+    const { type, id } = block;
+    const value = block[type];
+
+    switch (type) {
+      case "paragraph":
+        return (
+          <p key={id} className="text-lg leading-relaxed mb-6">
+            {value?.rich_text?.map((text: any) => text.plain_text).join("") ||
+              ""}
+          </p>
+        );
+
+      case "heading_1":
+        return (
+          <h1
+            key={id}
+            className="text-5xl font-normal mt-12 mb-6 tracking-tight"
+          >
+            {value?.rich_text?.map((text: any) => text.plain_text).join("") ||
+              ""}
+          </h1>
+        );
+
+      case "heading_2":
+        return (
+          <h2
+            key={id}
+            className="text-3xl font-normal mt-12 mb-6 tracking-tight"
+          >
+            {value?.rich_text?.map((text: any) => text.plain_text).join("") ||
+              ""}
+          </h2>
+        );
+
+      case "heading_3":
+        return (
+          <h3
+            key={id}
+            className="text-2xl font-normal mt-8 mb-4 tracking-tight"
+          >
+            {value?.rich_text?.map((text: any) => text.plain_text).join("") ||
+              ""}
+          </h3>
+        );
+
+      case "bulleted_list_item":
+        return (
+          <li key={id} className="text-lg leading-relaxed ml-6 mb-2 list-disc">
+            {value?.rich_text?.map((text: any) => text.plain_text).join("") ||
+              ""}
+          </li>
+        );
+
+      case "numbered_list_item":
+        return (
+          <li
+            key={id}
+            className="text-lg leading-relaxed ml-6 mb-2 list-decimal"
+          >
+            {value?.rich_text?.map((text: any) => text.plain_text).join("") ||
+              ""}
+          </li>
+        );
+
+      case "code":
+        return (
+          <pre
+            key={id}
+            className={`p-4 rounded my-6 overflow-x-auto border ${
+              isDark ? "bg-gray-900 border-white" : "bg-gray-100 border-black"
+            }`}
+          >
+            <code className="font-mono text-sm">
+              {value?.rich_text?.map((text: any) => text.plain_text).join("") ||
+                ""}
+            </code>
+          </pre>
+        );
+
+      case "quote":
+        return (
+          <blockquote
+            key={id}
+            className={`border-l-2 pl-6 my-6 italic ${
+              isDark ? "border-white" : "border-black"
+            }`}
+          >
+            {value?.rich_text?.map((text: any) => text.plain_text).join("") ||
+              ""}
+          </blockquote>
+        );
+
+      case "divider":
+        return (
+          <hr
+            key={id}
+            className={`my-8 ${isDark ? "border-white" : "border-black"}`}
+          />
+        );
+
+      case "image":
+        const imageUrl = value?.file?.url || value?.external?.url;
+        return imageUrl ? (
+          <img
+            key={id}
+            src={imageUrl}
+            alt="Blog content"
+            className="w-full my-8 rounded"
+          />
+        ) : null;
+
+      default:
+        return null;
+    }
+  };
+
+  return <div className="space-y-4">{blocks.map(renderBlock)}</div>;
+}
 
 export default function Portfolio() {
-  const [isDark, setIsDark] = useState(false);
-  const [page, setPage] = useState("home");
-  const [, setIsHovering ] = useState(false);
+  const [isDark, setIsDark] = useState(() => {
+    const saved = localStorage.getItem("theme");
+    return saved === "dark";
+  });
+  const [page, setPage] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("page") || "home";
+  });
+  const [, setIsHovering] = useState(false);
   const [posts, setPosts] = useState<NotionPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("post");
+  });
+  const [blogContent, setBlogContent] = useState<NotionBlock[]>([]);
+  const [loadingContent, setLoadingContent] = useState(false);
 
   const theme = {
     bg: isDark ? "bg-black" : "bg-white",
@@ -19,6 +159,40 @@ export default function Portfolio() {
       ? "hover:bg-white hover:text-black"
       : "hover:bg-black hover:text-white",
   };
+
+  // Update URL when page or post changes
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (page !== "home") {
+      params.set("page", page);
+    }
+    if (selectedPostId) {
+      params.set("post", selectedPostId);
+    }
+
+    const newUrl = params.toString()
+      ? `${window.location.pathname}?${params.toString()}`
+      : window.location.pathname;
+
+    window.history.pushState({}, "", newUrl);
+  }, [page, selectedPostId]);
+
+  // Save theme preference
+  useEffect(() => {
+    localStorage.setItem("theme", isDark ? "dark" : "light");
+  }, [isDark]);
+
+  // Handle browser back/forward buttons
+  useEffect(() => {
+    const handlePopState = () => {
+      const params = new URLSearchParams(window.location.search);
+      setPage(params.get("page") || "home");
+      setSelectedPostId(params.get("post"));
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   const projects = [
     { title: "Project Alpha", year: "2024", desc: "Digital experience design" },
@@ -32,7 +206,7 @@ export default function Portfolio() {
     async function loadPosts() {
       setLoading(true);
       const notionPosts = await fetchBlogPosts();
-      
+
       // Fallback to default posts if Notion fetch fails or returns empty
       if (notionPosts.length === 0) {
         setPosts([
@@ -40,30 +214,47 @@ export default function Portfolio() {
             id: "1",
             title: "On minimalism and restraint",
             date: "Dec 2024",
-            preview: "Less is not just more—it is everything that matters, distilled.",
+            preview:
+              "Less is not just more—it is everything that matters, distilled.",
           },
           {
             id: "2",
             title: "The space between",
             date: "Nov 2024",
-            preview: "White space is not empty. It is where the mind rests and meaning emerges.",
+            preview:
+              "White space is not empty. It is where the mind rests and meaning emerges.",
           },
           {
             id: "3",
             title: "Form follows function",
             date: "Oct 2024",
-            preview: "Every element must justify its existence, or it is clutter.",
+            preview:
+              "Every element must justify its existence, or it is clutter.",
           },
         ]);
       } else {
         setPosts(notionPosts);
       }
-      
+
       setLoading(false);
     }
 
     loadPosts();
   }, []);
+
+  // Fetch blog content when a post is selected
+  useEffect(() => {
+    async function loadBlogContent() {
+      if (selectedPostId && page === "blog-detail") {
+        setLoadingContent(true);
+        const content = await fetchBlogContent(selectedPostId);
+        setBlogContent(content);
+        setLoadingContent(false);
+      }
+    }
+
+    loadBlogContent();
+  }, [selectedPostId, page]);
 
   return (
     <div
@@ -210,7 +401,7 @@ export default function Portfolio() {
         <main className="pt-40 px-8 pb-20">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-5xl mb-16 tracking-tight">Writing</h2>
-            
+
             {loading ? (
               <div className={`text-center ${theme.accent} py-20`}>
                 Loading posts...
@@ -223,11 +414,17 @@ export default function Portfolio() {
                     className={`group border-l-2 ${theme.border} pl-8 ${theme.hover} transition-all cursor-pointer py-4 -ml-8`}
                     onMouseEnter={() => setIsHovering(true)}
                     onMouseLeave={() => setIsHovering(false)}
+                    onClick={() => {
+                      setSelectedPostId(post.id);
+                      setPage("blog-detail");
+                    }}
                   >
                     <div className={`text-sm ${theme.accent} mb-2`}>
                       {post.date}
                     </div>
-                    <h3 className="text-3xl mb-4 tracking-tight">{post.title}</h3>
+                    <h3 className="text-3xl mb-4 tracking-tight">
+                      {post.title}
+                    </h3>
                     <p className={`${theme.accent} text-lg`}>{post.preview}</p>
                     <div className="mt-6 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-0 group-hover:translate-x-2">
                       <span className="text-xs tracking-wider">READ MORE</span>
@@ -237,6 +434,61 @@ export default function Portfolio() {
                 ))}
               </div>
             )}
+          </div>
+        </main>
+      )}
+
+      {/* Blog Detail Page */}
+      {page === "blog-detail" && selectedPostId && (
+        <main className="pt-40 px-8 pb-20">
+          <div className="max-w-4xl mx-auto">
+            {/* Back Button */}
+            <button
+              onClick={() => {
+                setSelectedPostId(null);
+                setPage("blog");
+              }}
+              className={`mb-8 flex items-center gap-2 ${theme.hover} transition-all px-3 py-2 border ${theme.border}`}
+            >
+              <span>←</span>
+              <span>Back to Blog</span>
+            </button>
+
+            {/* Blog Content */}
+            {(() => {
+              const post = posts.find((p) => p.id === selectedPostId);
+              if (!post) return null;
+
+              return (
+                <article>
+                  <div className={`text-sm ${theme.accent} mb-4`}>
+                    {post.date}
+                  </div>
+                  <h1 className="text-6xl mb-8 tracking-tight leading-tight">
+                    {post.title}
+                  </h1>
+
+                  <div className={`border-l-2 ${theme.border} pl-8 mb-12`}>
+                    <p className={`${theme.accent} text-xl`}>{post.preview}</p>
+                  </div>
+
+                  {/* Article Content */}
+                  {loadingContent ? (
+                    <div className={`text-center ${theme.accent} py-20`}>
+                      Loading content...
+                    </div>
+                  ) : blogContent.length > 0 ? (
+                    <NotionContent blocks={blogContent} isDark={isDark} />
+                  ) : (
+                    <div className="space-y-6">
+                      <p className="text-lg leading-relaxed">
+                        No content available for this blog post yet.
+                      </p>
+                    </div>
+                  )}
+                </article>
+              );
+            })()}
           </div>
         </main>
       )}
