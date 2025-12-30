@@ -233,10 +233,30 @@ export default function Portfolio() {
   }, []);
 
   const projects = [
-    { title: "Project Alpha", year: "2024", desc: "Digital experience design" },
-    { title: "Project Beta", year: "2023", desc: "Interactive installation" },
-    { title: "Project Gamma", year: "2023", desc: "Brand identity system" },
-    { title: "Project Delta", year: "2022", desc: "Experimental interface" },
+    {
+      title: "Keyflow",
+      year: "2025",
+      desc: "A minimalistic typing web app",
+      url: "https://github.com/gaurabprasai/keyflow",
+    },
+    {
+      title: "Phemis",
+      year: "2024",
+      desc: "Movie recommendation system",
+      url: "https://github.com/gaurabprasai/phemis",
+    },
+    {
+      title: "Network",
+      year: "2024",
+      desc: "Social networking site",
+      url: "https://github.com/gaurabprasai/network",
+    },
+    {
+      title: "CS50x",
+      year: "2024",
+      desc: "A curated collection of projects completed during the CS50x course",
+      url: "https://github.com/gaurabprasai/cs50x",
+    },
   ];
 
   // Fetch blog posts from Notion on component mount
@@ -427,9 +447,12 @@ export default function Portfolio() {
             {/* Featured Work Preview */}
             <div className="mt-32 grid grid-cols-2 gap-8">
               {projects.slice(0, 2).map((project, i) => (
-                <div
+                <a
                   key={i}
-                  className={`group border ${theme.border} p-8 ${theme.hover} transition-all cursor-pointer`}
+                  href={project.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`group border ${theme.border} p-8 ${theme.hover} transition-all cursor-pointer block`}
                   onMouseEnter={() => setIsHovering(true)}
                   onMouseLeave={() => setIsHovering(false)}
                 >
@@ -442,7 +465,7 @@ export default function Portfolio() {
                     <span className="text-xs tracking-wider">VIEW PROJECT</span>
                     <ArrowUpRight size={14} />
                   </div>
-                </div>
+                </a>
               ))}
             </div>
           </div>
@@ -456,9 +479,12 @@ export default function Portfolio() {
             <h2 className="text-5xl mb-16 tracking-tight">Selected Work</h2>
             <div className="space-y-1">
               {projects.map((project, i) => (
-                <div
+                <a
                   key={i}
-                  className={`group border-t ${theme.border} py-8 grid grid-cols-12 gap-8 ${theme.hover} transition-all cursor-pointer px-4`}
+                  href={project.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`group border-t ${theme.border} py-8 grid grid-cols-12 gap-8 ${theme.hover} transition-all cursor-pointer px-4 block`}
                   onMouseEnter={() => setIsHovering(true)}
                   onMouseLeave={() => setIsHovering(false)}
                 >
@@ -470,7 +496,7 @@ export default function Portfolio() {
                   <div className="col-span-1 flex items-center justify-end opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-0 group-hover:translate-x-2">
                     <ArrowUpRight size={20} />
                   </div>
-                </div>
+                </a>
               ))}
               <div className={`border-t border-b ${theme.border}`}></div>
             </div>
@@ -626,12 +652,16 @@ export default function Portfolio() {
                 </p>
               </div>
               <div className="space-y-6">
-                <div
-                  className={`group border ${theme.border} p-6 ${theme.hover} transition-all cursor-pointer`}
+                <a
+                  href="https://mail.google.com/mail/?view=cm&to=gaurabprasaigp@gmail.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`group block border ${theme.border} p-6 ${theme.hover} transition-all cursor-pointer`}
                   onMouseEnter={() => setIsHovering(true)}
                   onMouseLeave={() => setIsHovering(false)}
                 >
                   <div className={`text-sm ${theme.accent} mb-2`}>Email</div>
+
                   <div className="text-xl flex items-center justify-between">
                     <span>gaurabprasaigp@gmail.com</span>
                     <ArrowUpRight
@@ -639,13 +669,18 @@ export default function Portfolio() {
                       className="opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-0 group-hover:translate-x-1 -translate-y-0 group-hover:-translate-y-1"
                     />
                   </div>
-                </div>
-                <div
-                  className={`group border ${theme.border} p-6 ${theme.hover} transition-all cursor-pointer`}
+                </a>
+
+                <a
+                  href="https://www.linkedin.com/in/gaurab-prasai-6a771831a?"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`group block border ${theme.border} p-6 ${theme.hover} transition-all cursor-pointer`}
                   onMouseEnter={() => setIsHovering(true)}
                   onMouseLeave={() => setIsHovering(false)}
                 >
                   <div className={`text-sm ${theme.accent} mb-2`}>Social</div>
+
                   <div className="text-xl flex items-center justify-between">
                     <span>@gaurabprasai</span>
                     <ArrowUpRight
@@ -653,13 +688,17 @@ export default function Portfolio() {
                       className="opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-0 group-hover:translate-x-1 -translate-y-0 group-hover:-translate-y-1"
                     />
                   </div>
-                </div>
-                <div
-                  className={`group border ${theme.border} p-6 ${theme.hover} transition-all cursor-pointer`}
+                </a>
+                <a
+                  href="https://maps.app.goo.gl/VcWQJApXPXNwfnPJ7"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`group block border ${theme.border} p-6 ${theme.hover} transition-all cursor-pointer`}
                   onMouseEnter={() => setIsHovering(true)}
                   onMouseLeave={() => setIsHovering(false)}
                 >
-                  <div className={`text-sm ${theme.accent} mb-2`}>Location</div>
+                  <div className={`text-sm ${theme.accent} mb-2`}>Address</div>
+
                   <div className="text-xl flex items-center justify-between">
                     <span>Biratnagar, Nepal</span>
                     <ArrowUpRight
@@ -667,7 +706,7 @@ export default function Portfolio() {
                       className="opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-0 group-hover:translate-x-1 -translate-y-0 group-hover:-translate-y-1"
                     />
                   </div>
-                </div>
+                </a>
               </div>
             </div>
           </div>
