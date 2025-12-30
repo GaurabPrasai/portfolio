@@ -3,7 +3,6 @@ import { Moon, Sun, ArrowUpRight } from "lucide-react";
 import { fetchBlogPosts, fetchBlogContent } from "../services/notionServices";
 import type { NotionPost, NotionBlock } from "../services/notionServices";
 
-// NotionContent Component
 function NotionContent({
   blocks,
   isDark,
@@ -389,7 +388,7 @@ export default function Portfolio() {
               onMouseEnter={() => setIsHovering(true)}
               onMouseLeave={() => setIsHovering(false)}
             >
-              Blog
+              Not A Blog
             </button>
             <button
               onClick={() => setPage("contact")}
