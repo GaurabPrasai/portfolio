@@ -21,12 +21,26 @@ export async function fetchBlogPosts(): Promise<NotionPost[]> {
 
     const data = await res.json();
 
-    return data.results.map((page: any) => ({
-      id: page.id,
-      title: page.properties.Title.title[0]?.plain_text ?? "Untitled",
-      date: page.properties.Date.date?.start ?? "",
-      preview: page.properties.Preview?.rich_text[0]?.plain_text ?? "",
-    }));
+    return data.results.map((page: any) => {
+      // Try to get preview from different possible properties
+      let preview = "";
+      
+      if (page.properties.Preview?.rich_text?.[0]?.plain_text) {
+        preview = page.properties.Preview.rich_text[0].plain_text;
+      } else if (page.properties.Description?.rich_text?.[0]?.plain_text) {
+        preview = page.properties.Description.rich_text[0].plain_text;
+      }
+
+      return {
+        id: page.id,
+        title: page.properties.Title?.title[0]?.plain_text ?? 
+               page.properties.Name?.title[0]?.plain_text ?? 
+               "Untitled",
+        date: page.properties.Date?.date?.start ?? 
+              page.created_time?.split('T')[0] ?? "",
+        preview: preview,
+      };
+    });
   } catch (error) {
     console.error("Error fetching posts:", error);
     return [];

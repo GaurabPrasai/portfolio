@@ -1,11 +1,14 @@
 export default async function handler(req, res) {
   const { pageId } = req.query;
 
+  // Set cache headers to cache responses
+  res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate');
+
   try {
-    // If pageId is provided, fetch that specific page's content
     if (pageId) {
+      // Fetch specific page content
       const response = await fetch(
-        `https://api.notion.com/v1/blocks/${pageId}/children`,
+        `https://api.notion.com/v1/blocks/${pageId}/children?page_size=100`,
         {
           method: "GET",
           headers: {
@@ -24,7 +27,7 @@ export default async function handler(req, res) {
       const data = await response.json();
       res.status(200).json(data);
     } else {
-      // Otherwise, fetch the database list
+      // Fetch database with sorting to get recent posts first
       const response = await fetch(
         `https://api.notion.com/v1/databases/${process.env.NOTION_DATABASE_ID}/query`,
         {
@@ -34,6 +37,15 @@ export default async function handler(req, res) {
             "Notion-Version": "2022-06-28",
             "Content-Type": "application/json",
           },
+          body: JSON.stringify({
+            sorts: [
+              {
+                property: "Date",
+                direction: "descending"
+              }
+            ],
+            page_size: 10 // Limit to 10 most recent posts
+          })
         }
       );
 

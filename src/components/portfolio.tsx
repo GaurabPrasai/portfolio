@@ -149,6 +149,44 @@ export default function Portfolio() {
   });
   const [blogContent, setBlogContent] = useState<NotionBlock[]>([]);
   const [loadingContent, setLoadingContent] = useState(false);
+  const [prefetchedContent, setPrefetchedContent] = useState<
+    Record<string, NotionBlock[]>
+  >({});
+
+  // Prefetch function
+  const prefetchBlogContent = async (postId: string) => {
+    // Check if already prefetched or cached
+    if (prefetchedContent[postId]) return;
+
+    const cacheKey = `blog_content_${postId}`;
+    const cachedContent = localStorage.getItem(cacheKey);
+
+    if (cachedContent) {
+      setPrefetchedContent((prev) => ({
+        ...prev,
+        [postId]: JSON.parse(cachedContent),
+      }));
+      return;
+    }
+
+    // Fetch in background
+    try {
+      const content = await fetchBlogContent(postId);
+      if (content.length > 0) {
+        setPrefetchedContent((prev) => ({
+          ...prev,
+          [postId]: content,
+        }));
+        localStorage.setItem(cacheKey, JSON.stringify(content));
+        localStorage.setItem(
+          `blog_content_time_${postId}`,
+          Date.now().toString()
+        );
+      }
+    } catch (error) {
+      console.error("Prefetch error:", error);
+    }
+  };
 
   const theme = {
     bg: isDark ? "bg-black" : "bg-white",
@@ -204,12 +242,24 @@ export default function Portfolio() {
   // Fetch blog posts from Notion on component mount
   useEffect(() => {
     async function loadPosts() {
+      // Check if we have cached posts
+      const cachedPosts = localStorage.getItem("cached_posts");
+      const cacheTime = localStorage.getItem("cache_time");
+      const now = Date.now();
+
+      // Use cache if it's less than 5 minutes old
+      if (cachedPosts && cacheTime && now - parseInt(cacheTime) < 300000) {
+        setPosts(JSON.parse(cachedPosts));
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       const notionPosts = await fetchBlogPosts();
 
       // Fallback to default posts if Notion fetch fails or returns empty
       if (notionPosts.length === 0) {
-        setPosts([
+        const defaultPosts = [
           {
             id: "1",
             title: "On minimalism and restraint",
@@ -231,9 +281,13 @@ export default function Portfolio() {
             preview:
               "Every element must justify its existence, or it is clutter.",
           },
-        ]);
+        ];
+        setPosts(defaultPosts);
       } else {
         setPosts(notionPosts);
+        // Cache the posts
+        localStorage.setItem("cached_posts", JSON.stringify(notionPosts));
+        localStorage.setItem("cache_time", now.toString());
       }
 
       setLoading(false);
@@ -246,15 +300,43 @@ export default function Portfolio() {
   useEffect(() => {
     async function loadBlogContent() {
       if (selectedPostId && page === "blog-detail") {
+        // Check if we have prefetched content
+        if (prefetchedContent[selectedPostId]) {
+          setBlogContent(prefetchedContent[selectedPostId]);
+          setLoadingContent(false);
+          return;
+        }
+
+        // Check if we have cached content for this post
+        const cacheKey = `blog_content_${selectedPostId}`;
+        const cachedContent = localStorage.getItem(cacheKey);
+        const cacheTimeKey = `blog_content_time_${selectedPostId}`;
+        const cacheTime = localStorage.getItem(cacheTimeKey);
+        const now = Date.now();
+
+        // Use cache if it's less than 10 minutes old
+        if (cachedContent && cacheTime && now - parseInt(cacheTime) < 600000) {
+          setBlogContent(JSON.parse(cachedContent));
+          setLoadingContent(false);
+          return;
+        }
+
         setLoadingContent(true);
         const content = await fetchBlogContent(selectedPostId);
         setBlogContent(content);
+
+        // Cache the content
+        if (content.length > 0) {
+          localStorage.setItem(cacheKey, JSON.stringify(content));
+          localStorage.setItem(cacheTimeKey, now.toString());
+        }
+
         setLoadingContent(false);
       }
     }
 
     loadBlogContent();
-  }, [selectedPostId, page]);
+  }, [selectedPostId, page, prefetchedContent]);
 
   return (
     <div
@@ -412,7 +494,11 @@ export default function Portfolio() {
                   <article
                     key={post.id}
                     className={`group border-l-2 ${theme.border} pl-8 ${theme.hover} transition-all cursor-pointer py-4 -ml-8`}
-                    onMouseEnter={() => setIsHovering(true)}
+                    onMouseEnter={() => {
+                      setIsHovering(true);
+                      // Prefetch content on hover
+                      prefetchBlogContent(post.id);
+                    }}
                     onMouseLeave={() => setIsHovering(false)}
                     onClick={() => {
                       setSelectedPostId(post.id);
@@ -474,8 +560,42 @@ export default function Portfolio() {
 
                   {/* Article Content */}
                   {loadingContent ? (
-                    <div className={`text-center ${theme.accent} py-20`}>
-                      Loading content...
+                    <div className="space-y-6 animate-pulse">
+                      <div
+                        className={`h-4 ${
+                          isDark ? "bg-gray-800" : "bg-gray-200"
+                        } rounded w-full`}
+                      ></div>
+                      <div
+                        className={`h-4 ${
+                          isDark ? "bg-gray-800" : "bg-gray-200"
+                        } rounded w-5/6`}
+                      ></div>
+                      <div
+                        className={`h-4 ${
+                          isDark ? "bg-gray-800" : "bg-gray-200"
+                        } rounded w-4/6`}
+                      ></div>
+                      <div
+                        className={`h-8 ${
+                          isDark ? "bg-gray-800" : "bg-gray-200"
+                        } rounded w-2/6 mt-8`}
+                      ></div>
+                      <div
+                        className={`h-4 ${
+                          isDark ? "bg-gray-800" : "bg-gray-200"
+                        } rounded w-full`}
+                      ></div>
+                      <div
+                        className={`h-4 ${
+                          isDark ? "bg-gray-800" : "bg-gray-200"
+                        } rounded w-5/6`}
+                      ></div>
+                      <div
+                        className={`h-4 ${
+                          isDark ? "bg-gray-800" : "bg-gray-200"
+                        } rounded w-3/6`}
+                      ></div>
                     </div>
                   ) : blogContent.length > 0 ? (
                     <NotionContent blocks={blogContent} isDark={isDark} />
