@@ -142,6 +142,7 @@ export default function Portfolio() {
   const [, setIsHovering] = useState(false);
   const [posts, setPosts] = useState<NotionPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get("post");
@@ -361,19 +362,23 @@ export default function Portfolio() {
     <div
       className={`min-h-screen ${theme.bg} ${theme.text} transition-colors duration-300 font-mono`}
     >
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 p-8 z-40">
-        <div className="max-w-6xl mx-auto flex justify-between items-start">
+      {/* Header - Desktop & Mobile */}
+      <header className="fixed top-0 left-0 right-0 p-4 md:p-8 z-40">
+        <div className="max-w-6xl mx-auto flex justify-between items-center">
           <button
-            onClick={() => setPage("home")}
-            className={`text-2xl tracking-tighter ${theme.hover} transition-all px-2 py-1 border ${theme.border}`}
+            onClick={() => {
+              setPage("home");
+              setMobileMenuOpen(false);
+            }}
+            className={`text-xl md:text-2xl tracking-tighter ${theme.hover} transition-all px-2 py-1 border ${theme.border}`}
             onMouseEnter={() => setIsHovering(true)}
             onMouseLeave={() => setIsHovering(false)}
           >
             GP
           </button>
 
-          <nav className="flex gap-6 items-center">
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex gap-6 items-center">
             <button
               onClick={() => setPage("work")}
               className={`${theme.hover} transition-all px-3 py-1 border ${theme.border}`}
@@ -407,12 +412,73 @@ export default function Portfolio() {
               {isDark ? <Sun size={16} /> : <Moon size={16} />}
             </button>
           </nav>
+
+          {/* Mobile Menu Button */}
+          <div className="flex md:hidden gap-2 items-center">
+            <button
+              onClick={() => setIsDark(!isDark)}
+              className={`p-2 border ${theme.border} ${theme.hover} transition-all`}
+            >
+              {isDark ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className={`p-2 border ${theme.border} ${theme.hover} transition-all`}
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  d="M3 5h14M3 10h14M3 15h14"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="square"
+                />
+              </svg>
+            </button>
+          </div>
         </div>
+
+        {/* Mobile Navigation Menu */}
+        {mobileMenuOpen && (
+          <nav className={`md:hidden mt-4 border ${theme.border} ${theme.bg}`}>
+            <button
+              onClick={() => {
+                setPage("work");
+                setMobileMenuOpen(false);
+              }}
+              className={`w-full text-left px-4 py-3 border-b ${theme.border} ${theme.hover} transition-all`}
+            >
+              Work
+            </button>
+            <button
+              onClick={() => {
+                setPage("blog");
+                setMobileMenuOpen(false);
+              }}
+              className={`w-full text-left px-4 py-3 border-b ${theme.border} ${theme.hover} transition-all`}
+            >
+              Not A Blog
+            </button>
+            <button
+              onClick={() => {
+                setPage("contact");
+                setMobileMenuOpen(false);
+              }}
+              className={`w-full text-left px-4 py-3 ${theme.hover} transition-all`}
+            >
+              Contact
+            </button>
+          </nav>
+        )}
       </header>
 
       {/* Home Page */}
       {page === "home" && (
-        <main className="pt-40 px-8 pb-20">
+        <main className="pt-40 px-8 pb-20 w-full">
           <div className="max-w-6xl mx-auto">
             <div className="grid grid-cols-12 gap-8">
               <div
