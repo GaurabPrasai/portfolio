@@ -1,7 +1,6 @@
-import Portfolio from './components/portfolio'
+import Portfolio from './components/Portfolio'
 
 function App() {
-
   return (
     <>
       <Portfolio />
