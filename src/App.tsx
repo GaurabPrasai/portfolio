@@ -1,4 +1,4 @@
-import Portfolio from './components/Portfolio'
+import Portfolio from './components/Portfolio.tsx'
 
 function App() {
   return (
